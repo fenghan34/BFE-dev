@@ -17,27 +17,25 @@ function objectAssign(target, ...sources) {
   const originDescriptors = Object.getOwnPropertyDescriptors(origin)
 
   sources.forEach((source) => {
-    if (source instanceof Object) {
-      Object.getOwnPropertyNames(source)
-        .concat(Object.getOwnPropertySymbols(source))
-        .forEach((key) => {
-          const originDescriptor = originDescriptors[key]
+    if (source == null) return
 
-          if (originDescriptor && !originDescriptor.writable) {
-            throw new TypeError(`target.${key} is read-only property`)
-          }
-
-          if (Object.getOwnPropertyDescriptor(source, key).enumerable) {
-            origin[key] = source[key]
-          }
-        })
+    if (!(source instanceof Object)) {
+      source = Object(source)
     }
 
-    if (typeof source === 'string') {
-      for (let i = 0; i < source.length; i++) {
-        origin[i] = source[i]
-      }
-    }
+    Object.getOwnPropertyNames(source)
+      .concat(Object.getOwnPropertySymbols(source))
+      .forEach((key) => {
+        const originDescriptor = originDescriptors[key]
+
+        if (originDescriptor && !originDescriptor.writable) {
+          throw new TypeError(`target.${key} is read-only property`)
+        }
+
+        if (Object.getOwnPropertyDescriptor(source, key).enumerable) {
+          origin[key] = source[key]
+        }
+      })
   })
 
   return origin
