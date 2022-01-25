@@ -21,7 +21,7 @@ function parallel(funcs) {
     const cb = (err, v) => {
       if (!error) {
         err
-          ? callback((error = err))
+          ? callback((error = err), undefined)
           : i++ === funcs.length - 1
           ? callback(undefined, [...data, v])
           : data.push(v)
