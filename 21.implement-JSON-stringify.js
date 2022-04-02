@@ -1,57 +1,49 @@
-
 /**
  * @param {any} data
  * @return {string}
  */
 function stringify(data) {
-  // TODO handle circular reference
-  const type = typeof data
+  function stringifyRecursively(data, set) {
+    const type = typeof data
 
-  switch (type) {
-    case 'function':
-    case 'undefined':
-    case 'symbol':
-      return
-    case 'bigint':
-      throw new TypeError()
-    case 'number':
-      if (isNaN(data) || !Number.isFinite(data)) return "null"
-      return data
-    case 'object':
-      if (data === null) return "null"
+    if (type === 'bigint') {
+      throw new TypeError('Converting bigint to JSON')
+    }
 
-      if (typeof data.toJSON === 'function') {
-        return data.toJSON()
+    if (['function', 'undefined', 'symbol'].includes(type)) return
+
+    if (type === 'string') return `"${data}"`
+
+    if (type === 'number' && (isNaN(data) || !Number.isFinite(data))) {
+      return "null"
+    }
+
+    if (type !== 'object' || data === null) return `${data}`
+
+    if (set.has(data)) {
+      throw new TypeError('Converting circular structure to JSON')
+    }
+
+    set.add(data)
+
+    if (typeof data.toJSON === 'function') return `"${data.toJSON()}"`
+
+    if (Array.isArray(data)) {
+      return `[${data.map(item => stringifyRecursively(item, set) || "null").join(',')}]`
+    }
+
+    const pairs = Object.entries(data)
+
+    return `{${pairs.reduce((prev, [key, value], i) => {
+      const stringified = stringifyRecursively(value, set)
+
+      if (stringified !== undefined) {
+        return `${prev}"${key}":${stringified}${i === pairs.length - 1 ? '' : ','}`
       }
 
-      if (Array.isArray(data)) {
-        if (data.length === 0) return "[]"
-
-        return `[${data.reduce((prev, cur, i) => {
-          return `${prev}${stringify(cur) || "null"}${i === data.length - 1 ? "" : ","}`
-        }, "")}]`
-      }
-
-      const entries = Object.entries(data)
-
-      if (entries.length === 0) {
-        return "{}"
-      }
-
-      const stringifiedObj = entries.reduce((prev, cur, i) => {
-        const [key, value] = cur
-
-        const stringified = stringify(value)
-
-        return stringified === undefined ? prev :
-          `${prev}"${key}":${stringified}${i === entries.length - 1 ? "" : ","}`
-      }, '')
-
-      return `{${stringifiedObj}}`
-    default:
-      return data
+      return prev
+    }, '')}}`
   }
-}
 
-const obj = { a: 3, b: 4, c: [1, 2, 3], d: { e: 5, f: 6 } }
-console.log(stringify(obj) === JSON.stringify(obj))
+  return stringifyRecursively(data, new WeakSet())
+}
